@@ -6,7 +6,7 @@ install_requires = [
 
 setup(
     name='omc-ssh',
-    version="0.0.3",
+    version="0.0.4",
     description='ssh plugin for omc',
     license='MIT',
     author='Lu Ganlin',
