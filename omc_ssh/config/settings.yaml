@@ -1,0 +1,2 @@
+default:
+  ssh_config_file: "@format {env[HOME]}/.ssh/config"

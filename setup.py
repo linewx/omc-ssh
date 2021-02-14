@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 install_requires = [
-    'omc>=0.2.1'
+    'omc>=0.2.2'
 ]
 
 
@@ -13,6 +13,6 @@ setup(
     author_email='linewx1981@gmail.com',
     url='https://github.com/linewx/omc-ssh',
     packages=find_packages(),
-    # package_data={'omc.config': ['*.yaml'], 'omc.lib': ['**', '**/*', '**/**/*']},
+    package_data={'omc_ssh.config': ['*.yaml'], 'omc_ssh.lib': ['**', '**/*', '**/**/*']},
     install_requires=install_requires,
 )
