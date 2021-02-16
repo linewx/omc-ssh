@@ -6,6 +6,7 @@ from omc.config import settings
 from omc.core import simple_completion
 from omc.core.decorator import filecache
 from omc.core.resource import Resource
+from omc_ssh.service.ssh_config import SshConfigService
 
 
 class Ssh(Resource, CmdTaskMixin):
@@ -37,17 +38,80 @@ class Ssh(Resource, CmdTaskMixin):
         return "\n".join(results)
 
     @simple_completion(['--dry-run'])
-    def cache(self):
+    def add(self):
         parser = argparse.ArgumentParser()
         parser.add_argument('--dry-run', action='store_true')
         args = parser.parse_args(self._get_action_params())
         ssh_host = self._get_one_resource_value()
+        self._add_ssh_host(ssh_host)
         cmd = "ssh-copy-id %s" % ssh_host
 
         if args.dry_run:
             print(cmd)
         else:
             self.run_cmd(cmd)
+
+    def _prompt(self, question, required=False, isBool=False, default=None):
+        while True:
+            result = input(question)
+            if required and result:
+                if isBool:
+                    if result[0].lower() == 'y':
+                        return True
+                    elif result[0].lower() == 'n':
+                        return False
+
+                else:
+                    return result
+
+            elif required:
+                # result is None
+                if default is not None:
+                    return default
+                else:
+                    continue
+            else:
+                # not required
+                if isBool:
+                    if result is None:
+                        if default is not None:
+                            return default
+                    else:
+                        if result[0].lower() == 'y':
+                            return True
+                        elif result[0].lower() == 'n':
+                            return False
+
+                else:
+                    return result
+
+    def _add_ssh_host(self, ssh_host):
+        if ssh_host is None:
+            raise Exception("hostname shouldn't be empty")
+
+        ssh_config = {}
+        hostconfig = SshConfigService.get_instance().get(ssh_host)
+        if hostconfig is None:
+            for one_config, required in SshConfigService.get_instance().config_keys:
+                required = False
+                result = self._prompt("Please input %s:" % one_config, required)
+                if result is not None:
+                    ssh_config[one_config] = result
+
+        ssh_config_item = SshConfigService.get_instance().format(ssh_host, hostconfig)
+        print('ssh config:')
+        print(ssh_config_item)
+        confirmed = self._prompt("are you sure you want add ssh host as above? (y/n)", isBool=True, required=True, default=True)
+        if not confirmed:
+            return
+
+        connected = SshConfigService.get_instance().test(ssh_host, hostconfig)
+        if not connected:
+            confirmed = self._prompt("the connection is refused, are you sure to add the ssh host anyway? (y/n)", isBool=True, required=True, default=False)
+            if not confirmed:
+                return
+
+        SshConfigService.get_instance().add(ssh_host, ssh_config)
 
     def _run(self):
         ssh_host = self._get_one_resource_value()
