@@ -1,12 +1,12 @@
 from setuptools import setup, find_packages
 install_requires = [
-    'omc>=0.2.2'
+    'omc>=0.2.3'
 ]
 
 
 setup(
     name='omc-ssh',
-    version="0.0.4",
+    version="0.0.5",
     description='ssh plugin for omc',
     license='MIT',
     author='Lu Ganlin',

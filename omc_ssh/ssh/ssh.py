@@ -73,7 +73,7 @@ class Ssh(Resource, CmdTaskMixin):
             else:
                 # not required
                 if isBool:
-                    if result is None:
+                    if result:
                         if default is not None:
                             return default
                     else:
@@ -94,18 +94,21 @@ class Ssh(Resource, CmdTaskMixin):
         if hostconfig is None:
             for one_config, required in SshConfigService.get_instance().config_keys:
                 required = False
-                result = self._prompt("Please input %s:" % one_config, required)
-                if result is not None:
+                result = self._prompt("Please input %s: " % one_config, required)
+                if result:
                     ssh_config[one_config] = result
+        else:
+            print('the host %s has been added already!' % ssh_host)
+            return
 
-        ssh_config_item = SshConfigService.get_instance().format(ssh_host, hostconfig)
+        ssh_config_item = SshConfigService.get_instance().format(ssh_host, ssh_config)
         print('ssh config:')
         print(ssh_config_item)
         confirmed = self._prompt("are you sure you want add ssh host as above? (y/n)", isBool=True, required=True, default=True)
         if not confirmed:
             return
 
-        connected = SshConfigService.get_instance().test(ssh_host, hostconfig)
+        connected = SshConfigService.get_instance().test(ssh_host, ssh_config)
         if not connected:
             confirmed = self._prompt("the connection is refused, are you sure to add the ssh host anyway? (y/n)", isBool=True, required=True, default=False)
             if not confirmed:
