@@ -136,16 +136,16 @@ class SshService(CmdTaskMixin):
         pid = self.find_process_by_port(port)
         if pid is not None:
             logging.info("shutdown previous proxy server firstly on port %s" % str(port))
-            os.kill(pid)
+            os.kill(pid, 9)
         self._socks_proxy(host, port)
 
     def stop_socks_proxy(self, host, port):
         pid = self.find_process_by_port(port)
-        os.kill(pid)
+        os.kill(pid, 9)
 
 
 if __name__ == '__main__':
-    # ssh_config = SshConfigService('/Users/luganlin/.ssh/config')
+    # ssh_config = SshService('/Users/luganlin/.ssh/config')
     # ssh_config.load()
     # hostname = 'test'
     # config = {
