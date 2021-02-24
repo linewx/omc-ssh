@@ -1,16 +1,20 @@
+import logging
+import os
 from telnetlib import Telnet
 
+import psutil
+from omc.common import CmdTaskMixin
 from omc.config import settings
 from omc.utils import prompt
 
 
-class SshConfigService:
+class SshService(CmdTaskMixin):
     _instance = None
 
     @classmethod
     def get_instance(cls, config_file=None):
         if cls._instance is None:
-            cls._instance = SshConfigService(config_file)
+            cls._instance = SshService(config_file)
 
         return cls._instance
 
@@ -42,7 +46,6 @@ class SshConfigService:
             if current_name:
                 self.configs[current_name] = current_config
 
-
     def get(self, host):
         if host in self.configs:
             return self.configs.get(host)
@@ -64,7 +67,7 @@ class SshConfigService:
 
     def add(self, hostname, config):
         result = self.format(hostname, config)
-        #print(result)
+        # print(result)
         with open(self.config_file, "a") as f:
             f.write('\n')
             f.write(result)
@@ -112,15 +115,46 @@ class SshConfigService:
 
         self.add(ssh_host, ssh_config)
 
+    def _socks_proxy(self, host, port):
+        cmd = "ssh -fN -D %(port)s %(host)s" % locals()
+        self.run_cmd(cmd)
+
+    def _port_forward(self, local_port, remote_host, remote_port, ssh_proxy_host):
+        port_forward_cmd = "ssh -nNT -L %(local_port)s:%(remote_host)s:%(remote_port)s %(ssh_proxy_host)s" % locals()
+        self.run_cmd(port_forward_cmd)
+
+    def find_process_by_port(self, port):
+        for one_process in psutil.process_iter():
+            try:
+                for one_connection in one_process.connections(kind='inet'):
+                    if one_connection.laddr.port == port:
+                        return one_process.pid
+            except:
+                pass
+
+    def start_socks_proxy(self, host, port):
+        pid = self.find_process_by_port(port)
+        if pid is not None:
+            logging.info("shutdown previous proxy server firstly on port %s" % str(port))
+            os.kill(pid)
+        self._socks_proxy(host, port)
+
+    def stop_socks_proxy(self, host, port):
+        pid = self.find_process_by_port(port)
+        os.kill(pid)
+
 
 if __name__ == '__main__':
-    ssh_config = SshConfigService('/Users/luganlin/.ssh/config')
-    ssh_config.load()
-    hostname = 'test'
-    config = {
-        'HostName': 'shc-sma-cd212.hpeswlab.net',
-        'Port': '21',
-        'User': 'root'
-    }
-    print(ssh_config.format(hostname, config))
-    print(ssh_config.test(hostname, config))
+    # ssh_config = SshConfigService('/Users/luganlin/.ssh/config')
+    # ssh_config.load()
+    # hostname = 'test'
+    # config = {
+    #     'HostName': 'shc-sma-cd212.hpeswlab.net',
+    #     'Port': '21',
+    #     'User': 'root'
+    # }
+    # print(ssh_config.format(hostname, config))
+    # print(ssh_config.test(hostname, config))
+
+    ssh_config = SshService('/Users/luganlin/.ssh/config')
+    print(ssh_config.find_process_by_port(7777))
