@@ -5,6 +5,7 @@ from telnetlib import Telnet
 import psutil
 from omc.common import CmdTaskMixin
 from omc.config import settings
+from omc.core import console
 from omc.utils import prompt
 
 
@@ -51,7 +52,7 @@ class SshService(CmdTaskMixin):
             return self.configs.get(host)
 
     def print(self):
-        print(self.configs)
+        console.log(self.configs)
 
     def format(self, hostname, config):
         if not hostname or not config:
@@ -67,7 +68,7 @@ class SshService(CmdTaskMixin):
 
     def add(self, hostname, config):
         result = self.format(hostname, config)
-        # print(result)
+        # console.log(result)
         with open(self.config_file, "a") as f:
             f.write('\n')
             f.write(result)
@@ -95,12 +96,12 @@ class SshService(CmdTaskMixin):
                 if result:
                     ssh_config[one_config] = result
         else:
-            print('the host %s has been added already!' % ssh_host)
+            console.log('the host %s has been added already!' % ssh_host)
             return
 
         ssh_config_item = self.format(ssh_host, ssh_config)
-        print('ssh config:')
-        print(ssh_config_item)
+        console.log('ssh config:')
+        console.log(ssh_config_item)
         confirmed = prompt("are you sure you want add ssh host as above? (y/n)", isBool=True, required=True,
                            default=True)
         if not confirmed:
@@ -153,8 +154,8 @@ if __name__ == '__main__':
     #     'Port': '21',
     #     'User': 'root'
     # }
-    # print(ssh_config.format(hostname, config))
-    # print(ssh_config.test(hostname, config))
+    # console.log(ssh_config.format(hostname, config))
+    # console.log(ssh_config.test(hostname, config))
 
     ssh_config = SshService('/Users/luganlin/.ssh/config')
-    print(ssh_config.find_process_by_port(7777))
+    console.log(ssh_config.find_process_by_port(7777))
