@@ -6,7 +6,7 @@ from omc.config import settings
 from omc.core import simple_completion, console
 from omc.core.decorator import filecache
 from omc.core.resource import Resource
-from omc_ssh.service.ssh_config import SshConfigService
+from omc_ssh.service.ssh_service import SshService
 
 
 class Ssh(Resource, CmdTaskMixin):
@@ -90,9 +90,9 @@ class Ssh(Resource, CmdTaskMixin):
             raise Exception("hostname shouldn't be empty")
 
         ssh_config = {}
-        hostconfig = SshConfigService.get_instance().get(ssh_host)
+        hostconfig = SshService.get_instance().get(ssh_host)
         if hostconfig is None:
-            for one_config, required in SshConfigService.get_instance().config_keys:
+            for one_config, required in SshService.get_instance().config_keys:
                 required = False
                 result = self._prompt("Please input %s: " % one_config, required)
                 if result:
@@ -101,20 +101,20 @@ class Ssh(Resource, CmdTaskMixin):
             console.log('the host %s has been added already!' % ssh_host)
             return
 
-        ssh_config_item = SshConfigService.get_instance().format(ssh_host, ssh_config)
+        ssh_config_item = SshService.get_instance().format(ssh_host, ssh_config)
         console.log('ssh config:')
         console.log(ssh_config_item)
         confirmed = self._prompt("are you sure you want add ssh host as above? (y/n)", isBool=True, required=True, default=True)
         if not confirmed:
             return
 
-        connected = SshConfigService.get_instance().test(ssh_host, ssh_config)
+        connected = SshService.get_instance().test(ssh_host, ssh_config)
         if not connected:
             confirmed = self._prompt("the connection is refused, are you sure to add the ssh host anyway? (y/n)", isBool=True, required=True, default=False)
             if not confirmed:
                 return
 
-        SshConfigService.get_instance().add(ssh_host, ssh_config)
+        SshService.get_instance().add(ssh_host, ssh_config)
 
     def _run(self):
         ssh_host = self._get_one_resource_value()
