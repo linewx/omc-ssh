@@ -3,7 +3,7 @@ import os
 import argparse
 from omc.common import CmdTaskMixin
 from omc.config import settings
-from omc.core import simple_completion
+from omc.core import simple_completion, console
 from omc.core.decorator import filecache
 from omc.core.resource import Resource
 from omc_ssh.service.ssh_service import SshService
@@ -47,7 +47,7 @@ class Ssh(Resource, CmdTaskMixin):
         cmd = "ssh-copy-id %s" % ssh_host
 
         if args.dry_run:
-            print(cmd)
+            console.log(cmd)
         else:
             self.run_cmd(cmd)
 
@@ -98,12 +98,12 @@ class Ssh(Resource, CmdTaskMixin):
                 if result:
                     ssh_config[one_config] = result
         else:
-            print('the host %s has been added already!' % ssh_host)
+            console.log('the host %s has been added already!' % ssh_host)
             return
 
         ssh_config_item = SshService.get_instance().format(ssh_host, ssh_config)
-        print('ssh config:')
-        print(ssh_config_item)
+        console.log('ssh config:')
+        console.log(ssh_config_item)
         confirmed = self._prompt("are you sure you want add ssh host as above? (y/n)", isBool=True, required=True, default=True)
         if not confirmed:
             return
@@ -120,7 +120,7 @@ class Ssh(Resource, CmdTaskMixin):
         ssh_host = self._get_one_resource_value()
         cmd = 'ssh %s' % ssh_host
         if '--dry-run' in self._get_resource_values():
-            print(cmd)
+            console.log(cmd)
         else:
             self.run_cmd(cmd)
 
@@ -134,7 +134,7 @@ class Ssh(Resource, CmdTaskMixin):
         ssh_host = self._get_one_resource_value()
         cmd = "ssh %s -C '%s'" % (ssh_host, " ".join(args.cmd))
         if args.dry_run:
-            print(cmd)
+            console.log(cmd)
         else:
             self.run_cmd(cmd)
 
@@ -151,7 +151,7 @@ class Ssh(Resource, CmdTaskMixin):
         args = parser.parse_args(self._get_action_params())
         cmd = "scp %s %s %s:%s" % ('-r' if args.recursive else '', args.local, ssh_host, args.remote)
         if args.dry_run:
-            print(cmd)
+            console.log(cmd)
         else:
             self.run_cmd(cmd)
 
@@ -168,7 +168,7 @@ class Ssh(Resource, CmdTaskMixin):
         args = parser.parse_args(self._get_action_params())
         cmd = "scp %s %s:%s %s" % ('-r' if args.recursive else '', ssh_host, args.remote, args.local)
         if args.dry_run:
-            print(cmd)
+            console.log(cmd)
         else:
             self.run_cmd(cmd)
 
@@ -192,6 +192,6 @@ class Ssh(Resource, CmdTaskMixin):
         }
 
         if args.dry_run:
-            print(cmd)
+            console.log(cmd)
         else:
             self.run_cmd(cmd)
