@@ -143,6 +143,31 @@ class SshService(CmdTaskMixin):
         pid = self.find_process_by_port(port)
         os.kill(pid, 9)
 
+    def list_socks_proxies(self, host=None, port=None):
+        results = []
+        for one_process in psutil.process_iter():
+            try:
+                # match strict proxy pattern
+
+                one_cmd = one_process.cmdline()
+                if one_process.name() == 'ssh' and '-fN' in one_cmd and '-D' in one_cmd:
+                    if host is not None and host != one_cmd[-1]:
+                        continue
+
+                    if port is not None and port != one_cmd[-2]:
+                        continue
+
+                    results.append({
+                        'process': one_process,
+                        'port': one_cmd[-2],
+                        'host': one_cmd[-1],
+                    })
+
+            except:
+                pass
+
+        return results
+
 
 if __name__ == '__main__':
     # ssh_config = SshService('/Users/luganlin/.ssh/config')
@@ -157,4 +182,5 @@ if __name__ == '__main__':
     # print(ssh_config.test(hostname, config))
 
     ssh_config = SshService('/Users/luganlin/.ssh/config')
+    ssh_config.start_socks_proxy('cd150', 7777)
     print(ssh_config.find_process_by_port(7777))
