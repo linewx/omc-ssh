@@ -2,6 +2,7 @@ import functools
 import os
 import argparse
 from omc.common import CmdTaskMixin
+from omc.common.common_completion import CompletionContent, action_arguments
 from omc.config import settings
 from omc.core import simple_completion, console
 from omc.core.decorator import filecache
@@ -14,28 +15,25 @@ class Ssh(Resource, CmdTaskMixin):
     def _description(self):
         return 'SSH(Secure Shell) Smart Tool Set'
 
-    @filecache(duration=60 * 60, file=Resource._get_cache_file_name)
-    def _completion(self, short_mode=True):
+    def _resource_completion(self, short_mode=True):
         results = []
-        results.append(super()._completion(True))
-        if not self._have_resource_value():
-            if not os.path.exists(settings.SSH_CONFIG_FILE):
-                return
+        if not os.path.exists(settings.SSH_CONFIG_FILE):
+            return
 
-            ssh_hosts = []
-            with open(settings.SSH_CONFIG_FILE) as f:
-                for one_line in f.readlines():
-                    try:
-                        one_line = one_line.strip()
-                        if one_line.startswith("Host "):
-                            hostname = one_line.replace("Host", "").strip()
-                            if hostname:
-                                ssh_hosts.append(hostname)
-                    except:
-                        pass
+        ssh_hosts = []
+        with open(settings.SSH_CONFIG_FILE) as f:
+            for one_line in f.readlines():
+                try:
+                    one_line = one_line.strip()
+                    if one_line.startswith("Host "):
+                        hostname = one_line.replace("Host", "").strip()
+                        if hostname:
+                            ssh_hosts.append(hostname)
+                except:
+                    pass
 
-            results.extend(ssh_hosts)
-        return "\n".join(results)
+        results.extend(ssh_hosts)
+        return CompletionContent(results)
 
     @simple_completion(['--dry-run'])
     def add(self):
@@ -155,13 +153,18 @@ class Ssh(Resource, CmdTaskMixin):
         else:
             self.run_cmd(cmd)
 
-    @simple_completion(['-r', '--local', '--remote', '--recursive', '--dry-run'])
-    def download(self):
-        parser = argparse.ArgumentParser()
-        parser.add_argument('-r', '--recursive', action='store_true')
-        parser.add_argument('--local', nargs='?', help='local files')
-        parser.add_argument('--remote', nargs='?', help='remote files')
-        parser.add_argument('--dry-run', action='store_true')
+    # @simple_completion(['-r:sdfsdf', '--local', '--remote', '--recursive', '--dry-run'])
+    @action_arguments([(['-r', '--recursive'], {'action': 'store_true', 'help': 'download files recursively'}),
+                       (['--remote'], {'nargs': '?', 'help': 'remote file path to download'}),
+                       (['--local'], {'nargs': '?', 'help': 'local file path to store'}),
+                       (['--dry-run'], {'help': 'dry run downloading files', 'action':'store_true'})
+                       ])
+    def download(self, parser):
+        # parser = argparse.ArgumentParser()
+        # parser.add_argument('-r', '--recursive', action='store_true')
+        # parser.add_argument('--local', nargs='?', help='local files')
+        # parser.add_argument('--remote', nargs='?', help='remote files')
+        # parser.add_argument('--dry-run', action='store_true')
 
         ssh_host = self._get_one_resource_value()
 
