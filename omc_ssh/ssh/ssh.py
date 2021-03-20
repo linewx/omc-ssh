@@ -1,11 +1,12 @@
-import functools
-import os
 import argparse
+import os
+
 from omc.common import CmdTaskMixin
+from omc.common.common_completion import CompletionContent
 from omc.config import settings
 from omc.core import simple_completion, console
-from omc.core.decorator import filecache
 from omc.core.resource import Resource
+
 from omc_ssh.service.ssh_service import SshService
 
 
@@ -14,28 +15,25 @@ class Ssh(Resource, CmdTaskMixin):
     def _description(self):
         return 'SSH(Secure Shell) Smart Tool Set'
 
-    @filecache(duration=60 * 60, file=Resource._get_cache_file_name)
-    def _completion(self, short_mode=True):
+    def _resource_completion(self, short_mode=True):
         results = []
-        results.append(super()._completion(True))
-        if not self._have_resource_value():
-            if not os.path.exists(settings.SSH_CONFIG_FILE):
-                return
+        if not os.path.exists(settings.SSH_CONFIG_FILE):
+            return
 
-            ssh_hosts = []
-            with open(settings.SSH_CONFIG_FILE) as f:
-                for one_line in f.readlines():
-                    try:
-                        one_line = one_line.strip()
-                        if one_line.startswith("Host "):
-                            hostname = one_line.replace("Host", "").strip()
-                            if hostname:
-                                ssh_hosts.append(hostname)
-                    except:
-                        pass
+        ssh_hosts = []
+        with open(settings.SSH_CONFIG_FILE) as f:
+            for one_line in f.readlines():
+                try:
+                    one_line = one_line.strip()
+                    if one_line.startswith("Host "):
+                        hostname = one_line.replace("Host", "").strip()
+                        if hostname:
+                            ssh_hosts.append(hostname)
+                except:
+                    pass
 
-            results.extend(ssh_hosts)
-        return "\n".join(results)
+        results.extend(ssh_hosts)
+        return CompletionContent(results)
 
     @simple_completion(['--dry-run'])
     def add(self):
