@@ -1,12 +1,12 @@
-import argparse
+import functools
 import os
-
+import argparse
 from omc.common import CmdTaskMixin
-from omc.common.common_completion import CompletionContent
+from omc.common.common_completion import CompletionContent, action_arguments
 from omc.config import settings
 from omc.core import simple_completion, console
+from omc.core.decorator import filecache
 from omc.core.resource import Resource
-
 from omc_ssh.service.ssh_service import SshService
 
 
@@ -153,13 +153,18 @@ class Ssh(Resource, CmdTaskMixin):
         else:
             self.run_cmd(cmd)
 
-    @simple_completion(['-r', '--local', '--remote', '--recursive', '--dry-run'])
-    def download(self):
-        parser = argparse.ArgumentParser()
-        parser.add_argument('-r', '--recursive', action='store_true')
-        parser.add_argument('--local', nargs='?', help='local files')
-        parser.add_argument('--remote', nargs='?', help='remote files')
-        parser.add_argument('--dry-run', action='store_true')
+    # @simple_completion(['-r:sdfsdf', '--local', '--remote', '--recursive', '--dry-run'])
+    @action_arguments([(['-r', '--recursive'], {'action': 'store_true', 'help': 'download files recursively'}),
+                       (['--remote'], {'nargs': '?', 'help': 'remote file path to download'}),
+                       (['--local'], {'nargs': '?', 'help': 'local file path to store'}),
+                       (['--dry-run'], {'help': 'dry run downloading files', 'action':'store_true'})
+                       ])
+    def download(self, parser):
+        # parser = argparse.ArgumentParser()
+        # parser.add_argument('-r', '--recursive', action='store_true')
+        # parser.add_argument('--local', nargs='?', help='local files')
+        # parser.add_argument('--remote', nargs='?', help='remote files')
+        # parser.add_argument('--dry-run', action='store_true')
 
         ssh_host = self._get_one_resource_value()
 
