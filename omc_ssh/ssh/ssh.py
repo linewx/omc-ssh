@@ -1,17 +1,19 @@
-import functools
-import os
 import argparse
+import os
+
 from omc.common import CmdTaskMixin
 from omc.common.common_completion import CompletionContent, action_arguments
+from omc.common.formatter import Formatter
 from omc.config import settings
 from omc.core import simple_completion, console
-from omc.core.decorator import filecache
 from omc.core.resource import Resource
+
 from omc_ssh.service.ssh_service import SshService
+from ruamel_yaml import YAML
+from ruamel_yaml.compat import StringIO
 
 
 class Ssh(Resource, CmdTaskMixin):
-
     def _description(self):
         return 'SSH(Secure Shell) Smart Tool Set'
 
@@ -33,12 +35,23 @@ class Ssh(Resource, CmdTaskMixin):
                     pass
 
         results.extend(ssh_hosts)
-        return CompletionContent(results)
 
-    @simple_completion(['--dry-run'])
-    def add(self):
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--dry-run', action='store_true')
+        configs = SshService.get_instance().configs
+        results = []
+        headers = ('HOST', 'HOSTNAME', 'PORT', 'USER')
+        results.append(headers)
+        results.extend(
+            [(key, value.get('HostName'), value.get('Port', 22), value.get('User')) for key, value in configs.items()])
+
+        return CompletionContent(Formatter.format_completions(results))
+
+    @action_arguments([(['--dry-run'], {'help': 'dry run to add ssh host', 'action': 'store_true'})])
+    def add(self, parser):
+        """
+        add ssh configuration
+        """
+        # parser = argparse.ArgumentParser()
+        # parser.add_argument('--dry-run', action='store_true')
         args = parser.parse_args(self._get_action_params())
         ssh_host = self._get_one_resource_value()
         self._add_ssh_host(ssh_host)
@@ -102,13 +115,15 @@ class Ssh(Resource, CmdTaskMixin):
         ssh_config_item = SshService.get_instance().format(ssh_host, ssh_config)
         console.log('ssh config:')
         console.log(ssh_config_item)
-        confirmed = self._prompt("are you sure you want add ssh host as above? (y/n)", isBool=True, required=True, default=True)
+        confirmed = self._prompt("are you sure you want add ssh host as above? (y/n)", isBool=True, required=True,
+                                 default=True)
         if not confirmed:
             return
 
         connected = SshService.get_instance().test(ssh_host, ssh_config)
         if not connected:
-            confirmed = self._prompt("the connection is refused, are you sure to add the ssh host anyway? (y/n)", isBool=True, required=True, default=False)
+            confirmed = self._prompt("the connection is refused, are you sure to add the ssh host anyway? (y/n)",
+                                     isBool=True, required=True, default=False)
             if not confirmed:
                 return
 
@@ -122,10 +137,14 @@ class Ssh(Resource, CmdTaskMixin):
         else:
             self.run_cmd(cmd)
 
-    @simple_completion(['--dry-run'])
-    def exec(self):
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--dry-run', action='store_true')
+    @action_arguments([(['--dry-run'], {'help': 'dry run to execute command', 'action': 'store_true'})])
+    #@action_arguments([(['cmd'], {'nargs': '*', 'help': 'command to execute'})])
+    def exec(self, parser):
+        """
+        execute command in remote host with ssh
+        """
+        # parser = argparse.ArgumentParser()
+        # parser.add_argument('--dry-run', action='store_true')
         parser.add_argument('cmd', nargs='*')
         args = parser.parse_args(self._get_action_params())
 
@@ -136,13 +155,15 @@ class Ssh(Resource, CmdTaskMixin):
         else:
             self.run_cmd(cmd)
 
-    @simple_completion(['-r', '--local', '--remote', '--dry-run'])
-    def upload(self):
-        parser = argparse.ArgumentParser()
-        parser.add_argument('-r', '--recursive', action='store_true')
-        parser.add_argument('--local', nargs='?', help='local files')
-        parser.add_argument('--remote', nargs='?', help='remote files')
-        parser.add_argument('--dry-run', action='store_true')
+    @action_arguments([(['-r', '--recursive'], {'action': 'store_true', 'help': 'upload files recursively'}),
+                       (['--remote'], {'nargs': '?', 'help': 'remote file path to store'}),
+                       (['--local'], {'nargs': '?', 'help': 'local file path to upload'}),
+                       (['--dry-run'], {'help': 'dry run downloading files', 'action': 'store_true'})
+                       ])
+    def upload(self, parser):
+        """
+        upload file or folder to remote host with scp
+        """
 
         ssh_host = self._get_one_resource_value()
 
@@ -157,9 +178,12 @@ class Ssh(Resource, CmdTaskMixin):
     @action_arguments([(['-r', '--recursive'], {'action': 'store_true', 'help': 'download files recursively'}),
                        (['--remote'], {'nargs': '?', 'help': 'remote file path to download'}),
                        (['--local'], {'nargs': '?', 'help': 'local file path to store'}),
-                       (['--dry-run'], {'help': 'dry run downloading files', 'action':'store_true'})
+                       (['--dry-run'], {'help': 'dry run downloading files', 'action': 'store_true'})
                        ])
     def download(self, parser):
+        """
+        download file or folders from remote host to local with scp
+        """
         # parser = argparse.ArgumentParser()
         # parser.add_argument('-r', '--recursive', action='store_true')
         # parser.add_argument('--local', nargs='?', help='local files')
@@ -177,6 +201,9 @@ class Ssh(Resource, CmdTaskMixin):
 
     @simple_completion(['--local-port', '--remote-port', '--remote-host', '--dry-run'])
     def tunnel(self):
+        """
+        setup ssh tunnel to from local port to remote host:port using <ssh host> as a bridge
+        """
         tunnel_template = "ssh -nNT -L %(local_port)s:%(remote_host)s:%(remote_port)s %(bridge)s"
         bridge = self._get_one_resource_value()
 
@@ -198,3 +225,9 @@ class Ssh(Resource, CmdTaskMixin):
             console.log(cmd)
         else:
             self.run_cmd(cmd)
+
+
+if __name__ == '__main__':
+    yaml = YAML()
+    content = yaml.load(Ssh.test_doc.__doc__)
+    print(content)

@@ -183,5 +183,6 @@ if __name__ == '__main__':
     # console.log(ssh_config.test(hostname, config))
 
     ssh_config = SshService('/Users/luganlin/.ssh/config')
-    ssh_config.start_socks_proxy('cd150', 7777)
-    console.log(ssh_config.find_process_by_port(7777))
+    print(ssh_config.configs)
+    # ssh_config.start_socks_proxy('cd150', 7777)
+    # console.log(ssh_config.find_process_by_port(7777))
